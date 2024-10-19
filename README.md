@@ -104,7 +104,7 @@ convft [OPTION]
 ```
 convft ft              # Convert current directory to 'all_files_text.txt'
 convft tf              # Reconstruct files from 'all_files_text.txt'
-sudo convft install    # Install ConvFT system-wide
+sudo ./convft install    # Install ConvFT system-wide. Must be in the repo directory to work.
 sudo convft uninstall  # Remove ConvFT from the system
 ```
 
