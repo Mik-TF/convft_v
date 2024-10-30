@@ -59,7 +59,8 @@ fn file_to_text() ! {
 	for file in files {
 		abs_file := os.real_path(file)
 		if abs_file != os.executable() && os.base(file) != output_file
-			&& os.base(file) != script_name {
+			&& os.base(file) != script_name
+			&& os.file_ext(file) in ['.md', '.txt', '.py', '.rs', '.js', '.css', '.html'] {
 			println(term.cyan('Processing:') + ' ${file}')
 			mut content := 'Filename: ${file}\nContent:\n'
 			content += os.read_file(file)!
