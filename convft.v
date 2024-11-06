@@ -48,26 +48,56 @@ fn help() {
 	println(term.blue('========================================='))
 }
 
+fn get_directory_tree() !string {
+	// Check if tree command exists
+	if os.system('which tree > /dev/null 2>&1') != 0 {
+		return error('tree command not found. Please install it first.')
+	}
+
+	// Create a temporary file to store tree output
+	temp_file := os.join_path(os.temp_dir(), 'tree_output.txt')
+	defer {
+		os.rm(temp_file) or {}
+	}
+
+	// Execute tree command and capture output
+	os.system('tree -L 2 > ${temp_file}')
+
+	// Read and return the output
+	return os.read_file(temp_file)!
+}
+
 fn file_to_text() ! {
 	output_file := 'all_files_text.txt'
 
 	println(term.yellow('Starting conversion of files to text...'))
 
+	// Initialize the output file
 	os.write_file(output_file, '')!
+
+	// Add directory tree at the beginning
+	mut f := os.open_append(output_file)!
+	f.write_string('DirectoryTree:\n')!
+	tree_output := get_directory_tree()!
+	f.write_string(tree_output)!
+	f.write_string('EndDirectoryTree\n\n')!
+	f.close()
 
 	files := os.walk_ext('.', '')
 	for file in files {
 		abs_file := os.real_path(file)
+		base_name := os.base(file)
 		if abs_file != os.executable() && os.base(file) != output_file
 			&& os.base(file) != script_name
-			&& os.file_ext(file) in ['.md', '.txt', '.py', '.rs', '.js', '.css', '.html'] {
+			&& (os.file_ext(file) in ['.md', '.txt', '.py', '.rs', '.js', '.css', '.html', '.v']
+			|| base_name in ['Makefile', 'makefile', 'GNUmakefile', 'LICENSE', 'License', 'COPYING']) {
 			println(term.cyan('Processing:') + ' ${file}')
-			mut content := 'Filename: ${file}\nContent:\n'
+			mut content := 'Filepath: ${file}\nContent:\n'
 			content += os.read_file(file)!
 			content += '\n\n'
-			mut f := os.open_append(output_file)!
-			f.write_string(content)!
-			f.close()
+			mut f2 := os.open_append(output_file)!
+			f2.write_string(content)!
+			f2.close()
 		}
 	}
 
@@ -88,9 +118,22 @@ fn text_to_file() ! {
 
 	mut current_file := ''
 	mut file_content := ''
+	mut in_tree_section := false
 
 	for line in lines {
-		if line.starts_with('Filename:') {
+		if line == 'DirectoryTree:' {
+			in_tree_section = true
+			continue
+		}
+		if line == 'EndDirectoryTree' {
+			in_tree_section = false
+			continue
+		}
+		if in_tree_section {
+			continue
+		}
+
+		if line.starts_with('Filepath:') {
 			if current_file != '' {
 				create_file(current_file, file_content)!
 				file_content = ''

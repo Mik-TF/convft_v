@@ -1,3 +1,4 @@
+
 <h1>ConvFT: File-Text Conversion Tool</h1>
 
 <h2>Table of Contents</h2>
@@ -142,3 +143,9 @@ For more information, updates, and to contribute, visit the [ConvFT GitHub repos
 ## License
 
 This work is under the [Apache 2.0 license](./LICENSE).
+
+
+
+
+
+
