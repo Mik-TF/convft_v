@@ -143,9 +143,3 @@ For more information, updates, and to contribute, visit the [ConvFT GitHub repos
 ## License
 
 This work is under the [Apache 2.0 license](./LICENSE).
-
-
-
-
-
-

@@ -11,6 +11,3 @@ rebuild:
 	
 delete:
 	sudo convft uninstall
-
-
-

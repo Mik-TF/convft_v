@@ -94,7 +94,7 @@ fn file_to_text() ! {
 			println(term.cyan('Processing:') + ' ${file}')
 			mut content := 'Filepath: ${file}\nContent:\n'
 			content += os.read_file(file)!
-			content += '\n\n'
+			content += '\n'
 			mut f2 := os.open_append(output_file)!
 			f2.write_string(content)!
 			f2.close()
@@ -117,7 +117,7 @@ fn text_to_file() ! {
 	lines := content.split_into_lines()
 
 	mut current_file := ''
-	mut file_content := ''
+	mut file_content := []string{} // Changed to array of strings
 	mut in_tree_section := false
 
 	for line in lines {
@@ -135,22 +135,22 @@ fn text_to_file() ! {
 
 		if line.starts_with('Filepath:') {
 			if current_file != '' {
-				create_file(current_file, file_content)!
-				file_content = ''
+				// Join the content lines and write to file
+				create_file(current_file, file_content.join('\n'))!
+				file_content = []string{}
 			}
 			current_file = line[9..].trim_space()
-			// Ensure we only create files in the current directory or its subdirectories
 			if !current_file.starts_with('./') && !current_file.starts_with('/') {
 				current_file = './' + current_file
 			}
 			println(term.cyan('Creating:') + ' ${current_file}')
 		} else if line != 'Content:' {
-			file_content += line + '\n'
+			file_content << line // Add line without newline
 		}
 	}
 
 	if current_file != '' {
-		create_file(current_file, file_content)!
+		create_file(current_file, file_content.join('\n'))!
 	}
 
 	println(term.green('Conversion completed. Files have been recreated.'))
