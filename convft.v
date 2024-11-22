@@ -5,40 +5,20 @@ import readline
 const script_name = os.base(os.executable())
 
 fn main() {
-	// Add debugging to see what args we're getting
-	println('Debug: args = ${os.args}')
-	println('Debug: args.len = ${os.args.len}')
-
 	if os.args.len == 1 {
 		help()
 		return
 	}
 
-	// Get the command from args[1] since args[0] is the executable path
 	cmd := os.args[1]
 	match cmd {
-		'ft' {
-			if os.args.len > 2 && os.args[2] == '-d' {
-				file_to_text_with_dirs() or { eprintln(term.red('Error: ${err}')) }
-			} else {
-				file_to_text() or { eprintln(term.red('Error: ${err}')) }
-			}
-		}
-		'tf' {
-			text_to_file() or { eprintln(term.red('Error: ${err}')) }
-		}
-		'install' {
-			install() or { eprintln(term.red('Error: ${err}')) }
-		}
-		'uninstall' {
-			uninstall() or { eprintln(term.red('Error: ${err}')) }
-		}
-		'help' {
-			help()
-		}
-		else {
-			eprintln(term.red("Invalid option. Use 'convft help' for usage information."))
-		}
+		'ft' { file_to_text() or { eprintln(term.red('Error: ${err}')) } }
+		'ftd' { file_to_text_with_dirs() or { eprintln(term.red('Error: ${err}')) } }
+		'tf' { text_to_file() or { eprintln(term.red('Error: ${err}')) } }
+		'install' { install() or { eprintln(term.red('Error: ${err}')) } }
+		'uninstall' { uninstall() or { eprintln(term.red('Error: ${err}')) } }
+		'help' { help() }
+		else { eprintln(term.red("Invalid option. Use 'convft help' for usage information.")) }
 	}
 }
 
@@ -57,7 +37,7 @@ fn help() {
 	println('')
 	println(term.green('Options:'))
 	println('  ${term.bold('ft')}         Convert files to text')
-	println('  ${term.bold('ft -d')}      Convert files to text with directory selection')
+	println('  ${term.bold('ftd')}        Convert files to text with directory selection')
 	println('  ${term.bold('tf')}         Convert text to files')
 	println('  ${term.bold('install')}    Install ConvFT (requires sudo)')
 	println('  ${term.bold('uninstall')}  Uninstall ConvFT (requires sudo)')
@@ -65,7 +45,7 @@ fn help() {
 	println('')
 	println(term.yellow('Examples:'))
 	println('  ${term.bold('convft ft')}              # Convert current directory to \'all_files_text.txt\'')
-	println('  ${term.bold('convft ft -d')}           # Convert selected directories to \'all_files_text.txt\'')
+	println('  ${term.bold('convft ftd')}             # Convert selected directories to \'all_files_text.txt\'')
 	println('  ${term.bold('convft tf')}              # Reconstruct files from \'all_files_text.txt\'')
 	println('  ${term.bold('sudo ./convft install')}    # Install ConvFT system-wide')
 	println('  ${term.bold('sudo convft uninstall')}  # Remove ConvFT from the system')
