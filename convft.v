@@ -1,21 +1,44 @@
 import os
 import term
+import readline
 
 const script_name = os.base(os.executable())
 
 fn main() {
+	// Add debugging to see what args we're getting
+	println('Debug: args = ${os.args}')
+	println('Debug: args.len = ${os.args.len}')
+
 	if os.args.len == 1 {
 		help()
 		return
 	}
 
-	match os.args[1] {
-		'ft' { file_to_text() or { eprintln(term.red('Error: ${err}')) } }
-		'tf' { text_to_file() or { eprintln(term.red('Error: ${err}')) } }
-		'install' { install() or { eprintln(term.red('Error: ${err}')) } }
-		'uninstall' { uninstall() or { eprintln(term.red('Error: ${err}')) } }
-		'help' { help() }
-		else { eprintln(term.red("Invalid option. Use 'convft help' for usage information.")) }
+	// Get the command from args[1] since args[0] is the executable path
+	cmd := os.args[1]
+	match cmd {
+		'ft' {
+			if os.args.len > 2 && os.args[2] == '-d' {
+				file_to_text_with_dirs() or { eprintln(term.red('Error: ${err}')) }
+			} else {
+				file_to_text() or { eprintln(term.red('Error: ${err}')) }
+			}
+		}
+		'tf' {
+			text_to_file() or { eprintln(term.red('Error: ${err}')) }
+		}
+		'install' {
+			install() or { eprintln(term.red('Error: ${err}')) }
+		}
+		'uninstall' {
+			uninstall() or { eprintln(term.red('Error: ${err}')) }
+		}
+		'help' {
+			help()
+		}
+		else {
+			eprintln(term.red("Invalid option. Use 'convft help' for usage information."))
+		}
 	}
 }
 
@@ -34,6 +57,7 @@ fn help() {
 	println('')
 	println(term.green('Options:'))
 	println('  ${term.bold('ft')}         Convert files to text')
+	println('  ${term.bold('ft -d')}      Convert files to text with directory selection')
 	println('  ${term.bold('tf')}         Convert text to files')
 	println('  ${term.bold('install')}    Install ConvFT (requires sudo)')
 	println('  ${term.bold('uninstall')}  Uninstall ConvFT (requires sudo)')
@@ -41,6 +65,7 @@ fn help() {
 	println('')
 	println(term.yellow('Examples:'))
 	println('  ${term.bold('convft ft')}              # Convert current directory to \'all_files_text.txt\'')
+	println('  ${term.bold('convft ft -d')}           # Convert selected directories to \'all_files_text.txt\'')
 	println('  ${term.bold('convft tf')}              # Reconstruct files from \'all_files_text.txt\'')
 	println('  ${term.bold('sudo ./convft install')}    # Install ConvFT system-wide')
 	println('  ${term.bold('sudo convft uninstall')}  # Remove ConvFT from the system')
@@ -65,6 +90,49 @@ fn get_directory_tree() !string {
 
 	// Read and return the output
 	return os.read_file(temp_file)!
+}
+
+fn get_subdirectories() ![]string {
+	mut dirs := []string{}
+
+	// Get all subdirectories
+	entries := os.ls('.') or { return error('Failed to list directory contents') }
+	for entry in entries {
+		if os.is_dir(entry) && !entry.starts_with('.') {
+			dirs << entry
+		}
+	}
+
+	if dirs.len == 0 {
+		return error('No subdirectories found in current directory')
+	}
+
+	println(term.yellow('\nAvailable subdirectories:'))
+	for i, dir in dirs {
+		println('${i + 1}. ${dir}')
+	}
+
+	println(term.cyan('\nEnter directory numbers to include (comma-separated, e.g., "1,3,4"), or "all" for all directories:'))
+	input := readline.read_line('> ') or { return error('Failed to read input') }
+
+	if input.to_lower() == 'all' {
+		return dirs
+	}
+
+	mut selected_dirs := []string{}
+	numbers := input.split(',')
+	for num in numbers {
+		idx := num.trim_space().int() - 1
+		if idx >= 0 && idx < dirs.len {
+			selected_dirs << dirs[idx]
+		}
+	}
+
+	if selected_dirs.len == 0 {
+		return error('No valid directories selected')
+	}
+
+	return selected_dirs
 }
 
 fn file_to_text() ! {
@@ -102,6 +170,51 @@ fn file_to_text() ! {
 	}
 
 	println(term.green('Conversion completed. Output saved to ') + term.bold(output_file))
+}
+
+fn file_to_text_with_dirs() ! {
+	output_file := 'all_files_text.txt'
+
+	println(term.yellow('Starting directory selection process...'))
+
+	selected_dirs := get_subdirectories()!
+
+	println(term.yellow('\nStarting conversion of files to text in selected directories...'))
+
+	// Initialize the output file
+	os.write_file(output_file, '')!
+
+	// Add directory tree at the beginning
+	mut f := os.open_append(output_file)!
+	f.write_string('DirectoryTree:\n')!
+	tree_output := get_directory_tree()!
+	f.write_string(tree_output)!
+	f.write_string('EndDirectoryTree\n\n')!
+	f.close()
+
+	// Process files in selected directories
+	for dir in selected_dirs {
+		println(term.cyan('\nProcessing directory: ') + term.bold(dir))
+		files := os.walk_ext(dir, '')
+		for file in files {
+			abs_file := os.real_path(file)
+			base_name := os.base(file)
+			if abs_file != os.executable() && os.base(file) != output_file
+				&& os.base(file) != script_name
+				&& (os.file_ext(file) in ['.md', '.txt', '.py', '.rs', '.js', '.css', '.html', '.v']
+				|| base_name in ['Makefile', 'makefile', 'GNUmakefile', 'LICENSE', 'License', 'COPYING']) {
+				println(term.cyan('Processing:') + ' ${file}')
+				mut content := 'Filepath: ${file}\nContent:\n'
+				content += os.read_file(file)!
+				content += '\n'
+				mut f2 := os.open_append(output_file)!
+				f2.write_string(content)!
+				f2.close()
+			}
+		}
+	}
+
+	println(term.green('\nConversion completed. Output saved to ') + term.bold(output_file))
 }
 
 fn text_to_file() ! {
